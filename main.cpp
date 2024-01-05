@@ -35,10 +35,10 @@ public:
     void printBoard() {
         for(int i = 0; i < boardSize;i++){
             for(int j = 0; j < boardSize;j++){
-                cout << board[i][j] << " ";
-            }cout << endl;
+                cout << board[i][j];
+                if(j != boardSize-1) cout << " | ";
+            }cout <<endl;
         }
-        cout << endl;
     }
     int getLeftMoves(){
         return left;
@@ -130,9 +130,9 @@ public:
         if(left == 0) return 0;
         if(depth == 0){
             if(maximizing){
-                return 1*(getLeftMoves()+1);
+                return 1;
             }else{
-                return -1*(getLeftMoves()+1);
+                return -1;
             }
         }
         if(maximizing){
@@ -144,8 +144,8 @@ public:
                         int score = miniMax(i,j,false,depth-1,alpha,beta);
                         undo(i,j);
                         alpha = max(alpha,score);
-                        if(beta <= alpha ) cout<<"pruned ";break;
                         maxScore = max(score,maxScore);
+                        if(beta < alpha ) cout<<"pruned ";break;
                     }
                 }
             }
@@ -159,8 +159,8 @@ public:
                         int score = miniMax(i,j,true,depth-1,alpha,beta);
                         undo(i,j);
                         beta = min(beta,score);
-                        if(beta <= alpha) cout<<"pruned ";break;
                         maxScore = min(score,maxScore);
+                        if(beta < alpha) cout<<"pruned ";break;
                     }
                 }
             }

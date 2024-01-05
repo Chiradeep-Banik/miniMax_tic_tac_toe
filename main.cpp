@@ -16,19 +16,25 @@ class Game{
 private:
     vector<vector<char>> board;
     int left;
+    int boardSize;
+    int maxDepth = 2;
 public:
-    Game(){
+    Game(int n=3,int depth=2){
         board.clear();
-        board = {
-            {'+','+','+'},
-            {'+','+','+'},
-            {'+','+','+'}
-        };
-        left=9;
+        for(int i=0;i<n;i++){
+            vector<char> v;
+            for(int j=0;j<n;j++){
+                v.push_back('-');
+            }
+            board.push_back(v);
+        }
+        left=n*n;
+        boardSize = n;
+        maxDepth=depth;
     }
     void printBoard() {
-        for(int i = 0; i < 3;i++){
-            for(int j = 0; j < 3;j++){
+        for(int i = 0; i < boardSize;i++){
+            for(int j = 0; j < boardSize;j++){
                 cout << board[i][j] << " ";
             }cout << endl;
         }
@@ -38,44 +44,66 @@ public:
         return left;
     } 
     bool isValid(int x,int y){
-        if(x < 0 || y < 0 || x > 2 || y > 2) return false;
-        if(board[x][y] != '+'){
+        if(x < 0 || y < 0 || x > boardSize-1 || y > boardSize-1) return false;
+        if(board[x][y] != '-'){
             return false;
         }
         return true;
     }
     bool hasWon(bool oTurn){
-        char checkFor = '+';
+        char checkFor = '-';
         if(oTurn) checkFor = 'O';
         else checkFor ='X';
 
-        bool won = false;
+        bool won = true;
 
-        //vecrtical
-        for(int i=0;i<3;i++){
-            if(board[i][0] == board[i][1] && board[i][1] == board[i][2] && board[i][0] == checkFor){
-                won = true;
+        //horizontal
+        for(int i=0;i<boardSize;i++){
+            won = true;
+            for(int j=0;j<boardSize;j++){
+                if(board[i][j] != checkFor){
+                    won = false;
+                    break;
+                }
             }
+            if(won) break;
         }
         if(won) return true;
-        //horizontal
-        for(int i=0;i<3;i++){
-            if(board[0][i] == board[1][i] && board[1][i] == board[2][i] && board[0][i] == checkFor){
-                won = true;
+        //vertical
+        for(int i=0;i<boardSize;i++){
+            won = true;
+            for(int j=0;j<boardSize;j++){
+                if(board[j][i] != checkFor){
+                    won = false;
+                    break;
+                }
             }
+            if(won) break;
         }
         if(won) return true;
         //diagonal
-        if(board[0][0] == board[1][1] && board[1][1] == board[2][2] && board[0][0] == checkFor){
-            won = true;
+        int i =0,j=0;
+        won = true;
+        while(i<boardSize && j<boardSize){
+            if(board[i][j] != checkFor){
+                won = false;
+                break;
+            }
+            i++;
+            j++;
         }
         if(won) return true;
-
-        if(board[0][2] == board[1][1] && board[1][1] == board[2][0] && board[0][2] == checkFor){
-            won = true;
+        won = true;
+        i = 0,j = boardSize-1;
+        while(i<boardSize && j>-1){
+            if(board[i][j] != checkFor){
+                won = false;
+                break;
+            }
+            i++;
+            j--;
         }
         return won;
-
     }
     bool move(int x, int y,bool oTurn){
         if(!isValid(x,y)){
@@ -91,24 +119,32 @@ public:
         return true;
     } 
     void undo(int x, int y){
-        board[x][y] = '+';
+        board[x][y] = '-';
         left++;
     }
-    int miniMax(int x, int y,int maximizing,int depth){
-        // cout << "miniMax :: " << endl;
-        // printBoard();
-        if(hasWon(true)) return 1;
-        if(hasWon(false)) return -1;
+    int miniMax(int x, int y,int maximizing,int depth,int alpha, int beta){
+        cout << "miniMax :: " << endl;
+        printBoard();
+        if(hasWon(true) && maximizing) return 1000;
+        if(hasWon(false) && !maximizing) return 1000;
         if(left == 0) return 0;
-
+        if(depth == 0){
+            if(maximizing){
+                return 1*(getLeftMoves()+1);
+            }else{
+                return -1*(getLeftMoves()+1);
+            }
+        }
         if(maximizing){
             int maxScore = INT_MIN;
             for(int i=0;i<board.size();i++){
                 for(int j=0;j<board.size();j++){
-                    if(board[i][j] =='+'){
+                    if(board[i][j] =='-'){
                         move(i,j,true);
-                        int score = miniMax(i,j,false,depth+1);
+                        int score = miniMax(i,j,false,depth-1,alpha,beta);
                         undo(i,j);
+                        alpha = max(alpha,score);
+                        if(beta <= alpha ) cout<<"pruned ";break;
                         maxScore = max(score,maxScore);
                     }
                 }
@@ -118,10 +154,12 @@ public:
             int maxScore = INT_MAX;
             for(int i=0;i<board.size();i++){
                 for(int j=0;j<board.size();j++){
-                    if(board[i][j] =='+'){
+                    if(board[i][j] =='-'){
                         move(i,j,false);
-                        int score = miniMax(i,j,true,depth+1);
+                        int score = miniMax(i,j,true,depth-1,alpha,beta);
                         undo(i,j);
+                        beta = min(beta,score);
+                        if(beta <= alpha) cout<<"pruned ";break;
                         maxScore = min(score,maxScore);
                     }
                 }
@@ -134,13 +172,13 @@ public:
         if(getLeftMoves() == 0) return;
         int maxScore = INT_MIN;
         pair<int,int> bestMove;
-        for(int i=0;i<3;i++){
+        for(int i=0;i<boardSize;i++){
             bool ifMoved = false;
-            for(int j=0;j<3;j++){
+            for(int j=0;j<boardSize;j++){
                 vector<vector<char>> tempBoard= board;
-                if(board[i][j] == '+'){
+                if(board[i][j] == '-'){
                     move(i,j,true);
-                    int curScore = miniMax(i,j,false,0);
+                    int curScore = miniMax(i,j,false,maxDepth,INT_MIN,INT_MAX);
                     undo(i,j);
                     if(curScore > maxScore){
                         bestMove = {i,j};
@@ -154,7 +192,12 @@ public:
 };
 
 int main(){
-    Game g = Game();
+    int boardSize,maxDepth;
+    cout << "Board size: ";
+    cin >> boardSize;
+    cout << "max depth: ";
+    cin >> maxDepth;
+    Game g = Game(boardSize,maxDepth);
     int player = true;
     while(g.getLeftMoves() > 0){
         cout << "Current Board : " << endl;
